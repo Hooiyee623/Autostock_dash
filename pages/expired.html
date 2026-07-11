@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expired Items Report</title>
-    <link rel="icon" type="image/png" href="../assets/autostock.logo.png">
+    <title>AutoStock — Expired Items</title>
+    <link rel="icon" type="image/png" href="../assets/autostock_logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block">
     <link rel="stylesheet" href="../css/style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -12,26 +14,33 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
-<body class="report-page" style="background-color: #92b7e7;">
+<body class="report-page">
 
-    <div class="page-container" style="background-color: rgba(251, 252, 254, 0.452);">
-        <div class="header-row">
-            <h2 class="page-title">Expired Items Report</h2>
-            <div style="display: flex; gap: 10px;">
-                <button class="back-btn" style="background-color: #94a3b8;" onclick="window.location.href='../dashboard.html'">← Back</button>
-                <button class="back-btn" style="background-color: #059669;" onclick="exportToPDF()">Export to PDF</button>
+    <div class="report-layout">
+
+        <header class="report-header">
+            <div class="report-header-left">
+                <button class="back-btn" onclick="window.location.href='../dashboard.html'">
+                    <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
+                    Back
+                </button>
+                <span class="report-title">Expired Items Report</span>
             </div>
-        </div>
+            <button class="export-btn" onclick="exportToPDF()">
+                <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+                Export PDF
+            </button>
+        </header>
 
-        <div class="filter-row">
-            <input type="text" id="searchInput" class="filter-dropdown" placeholder="Search Item ID..." onkeyup="renderTable()">
-            <select id="categoryFilter" class="filter-dropdown" onchange="renderTable()">
+        <div class="report-filters">
+            <input type="text" id="searchInput" class="filter-input" placeholder="Search Item ID…" oninput="renderTable()">
+            <select id="categoryFilter" class="filter-select" onchange="renderTable()">
                 <option value="ALL">All Categories</option>
                 <option value="Category_A">Category A</option>
                 <option value="Category_B">Category B</option>
                 <option value="Category_C">Category C</option>
             </select>
-            <select id="monthFilter" class="filter-dropdown" onchange="renderTable()">
+            <select id="monthFilter" class="filter-select" onchange="renderTable()">
                 <option value="ALL">All Months</option>
                 <option value="01">January</option><option value="02">February</option>
                 <option value="03">March</option><option value="04">April</option>
@@ -42,32 +51,39 @@
             </select>
         </div>
 
-        <div class="table-scroll-container">
-            <table class="inventory-table">
+        <div class="report-table-wrap">
+            <table class="report-table">
                 <thead>
-                    <tr><th>No.</th><th>Item ID</th><th>Category</th><th>Days Past Expiry</th><th>Discard Status</th></tr>
+                    <tr>
+                        <th>#</th>
+                        <th>Item ID</th>
+                        <th>Category</th>
+                        <th>Expiry Date</th>
+                        <th>Days Past Expiry</th>
+                        <th>Discard Status</th>
+                    </tr>
                 </thead>
-                <tbody id="expiredTableBody">
-                    <tr><td colspan='5' style='text-align: center;'>Loading Expired Items...</td></tr>
+                <tbody id="tableBody">
+                    <tr><td colspan="6" style="text-align:center; padding:20px;">Loading…</td></tr>
                 </tbody>
             </table>
         </div>
+
     </div>
 
     <script>
-        let expiredData = [];
+        let data = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        database.ref('InventoryLogs').on('value', (snapshot) => {
-            expiredData = [];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            snapshot.forEach((child) => {
-                const item = child.val();
-                if (item.Action === "CHECK_IN" && item.ExpiryDate) {
+        database.ref('InventoryLogs').on('value', snapshot => {
+            data = [];
+            snapshot.forEach(c => {
+                const item = c.val();
+                if (item.Action === 'CHECK_IN' && item.ExpiryDate) {
                     const expiry = new Date(item.ExpiryDate.replace(' ', 'T'));
-                    if (expiry < today && item.Status !== "Removed") {
-                        expiredData.push({ ...item, key: child.key });
+                    if (expiry < today && item.Status !== 'Removed') {
+                        data.push({ ...item, key: c.key });
                     }
                 }
             });
@@ -75,47 +91,56 @@
         });
 
         function renderTable() {
-            const tableBody = document.getElementById('expiredTableBody');
+            const tbody  = document.getElementById('tableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
-            const cat = document.getElementById('categoryFilter').value;
-            const mon = document.getElementById('monthFilter').value;
-            tableBody.innerHTML = "";
+            const cat    = document.getElementById('categoryFilter').value;
+            const mon    = document.getElementById('monthFilter').value;
 
-            const filtered = expiredData.filter(item => {
-                const sMatch = (item.ItemID || "").toLowerCase().includes(search);
-                const cMatch = (cat === "ALL" || item.Category === cat);
-                // Extract month from ExpiryDate string (YYYY-MM-DD)
-                const itemMon = item.ExpiryDate ? item.ExpiryDate.split(' ')[0].split('-')[1] : "";
-                const mMatch = (mon === "ALL" || itemMon === mon);
+            const filtered = data.filter(item => {
+                const sMatch = (item.ItemID || '').toLowerCase().includes(search);
+                const cMatch = cat === 'ALL' || item.Category === cat;
+                const mMatch = mon === 'ALL' || item.ExpiryDate?.split(' ')[0]?.split('-')[1] === mon;
                 return sMatch && cMatch && mMatch;
             });
 
-            filtered.forEach((item, i) => {
-                const daysPast = Math.floor((new Date() - new Date(item.ExpiryDate.replace(' ', 'T'))) / (1000 * 60 * 60 * 24));
-                const status = item.Status || "Not Removed";
-                
-                tableBody.innerHTML += `<tr>
-                    <td>${i+1}</td>
-                    <td>${item.ItemID || 'N/A'}</td>
-                    <td>${item.Category || 'N/A'}</td>
-                    <td>${daysPast} days</td>
-                    <td>
-                        ${status === "Removed" ? "Removed" : `<button class="discard-btn" onclick="markRemoved('${item.key}')">Mark Removed</button>`}
-                    </td>
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">No expired items found.</td></tr>`;
+                return;
+            }
+
+            const rows = filtered.map((item, i) => {
+                const daysPast = Math.floor((new Date() - new Date(item.ExpiryDate.replace(' ', 'T'))) / 86400000);
+                const statusCell = item.Status === 'Removed'
+                    ? `<span class="removed-chip">Removed</span>`
+                    : `<button class="discard-btn" onclick="markRemoved('${item.key}')">Mark Removed</button>`;
+                return `<tr>
+                    <td>${i + 1}</td>
+                    <td style="font-family:monospace; font-size:12px;">${item.ItemID || 'N/A'}</td>
+                    <td>${item.Category?.replace('_', ' ') || 'N/A'}</td>
+                    <td>${item.ExpiryDate || '—'}</td>
+                    <td class="days-expired">${daysPast} days</td>
+                    <td>${statusCell}</td>
                 </tr>`;
-            });
+            }).join('');
+
+            const total = `<tr class="total-row">
+                <td colspan="5" style="text-align:right;">Total:</td>
+                <td>${filtered.length}</td>
+            </tr>`;
+
+            tbody.innerHTML = rows + total;
         }
 
         function markRemoved(key) {
-            database.ref('InventoryLogs/' + key).update({ Status: "Removed" });
+            database.ref('InventoryLogs/' + key).update({ Status: 'Removed' });
         }
 
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Expired Items Report", 14, 20);
-            doc.autoTable({ html: '.inventory-table', startY: 30 });
-            doc.save("Expired_Items.pdf");
+            doc.text('Expired Items Report', 14, 20);
+            doc.autoTable({ html: '.report-table', startY: 28 });
+            doc.save('Expired_Items.pdf');
         }
     </script>
 </body>
