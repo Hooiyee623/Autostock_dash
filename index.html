@@ -8,14 +8,15 @@
         <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
             <!-- core engine -->
         <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="js/firebase-config.js"></script>
         <title>
             Autostock-Sign In
         </title>
-        <link rel="icon" type="images/png" href="autostock.logo.png">
+        <link rel="icon" type="image/png" href="assets/autostock.logo.png">
     </head>
     <style>
         body{
-            background-image: linear-gradient(rgba(207, 195, 195, 0.8), rgba(207, 195, 195, 0.8)), url('inventorytwo.jpg');
+            background-image: linear-gradient(rgba(207, 195, 195, 0.8), rgba(207, 195, 195, 0.8)), url('assets/inventorytwo.jpg');
             /* two rgba: top and botton of the screen */
             background-size: cover; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;   
@@ -110,16 +111,6 @@
                 <div class="error-message" id="errorDiv"></div>
             </form>
     <script>
-        // Config credentials for your custom app instance
-        const firebaseConfig = {
-            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", 
-            authDomain: "autostock-c3953.firebaseapp.com",
-            databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        
-        // Connect to the operational stack
-        firebase.initializeApp(firebaseConfig);
-
         function handleLogin() {
             //this code function when user click on the sign in button
             //getElementById look at specific text box ans grad what user type
@@ -136,7 +127,7 @@
             //send the id and password to server to ask can sign in or not
                 .then((userCredential) => {
                     // Valid identity verified -> open main terminal dashboard screen
-                    window.location.href = "indexpage.html";
+                    window.location.href = "dashboard.html";
                     //then open the dashboard for user
                 })
                 .catch((error) => {

@@ -4,34 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expired Items Report</title>
-    <link rel="icon" type="image/png" href="autostock.logo.png">
+    <link rel="icon" type="image/png" href="../assets/autostock.logo.png">
+    <link rel="stylesheet" href="../css/style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="../js/firebase-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #92b7e7; margin: 0; }
-        .page-container { background-color: rgba(251, 252, 254, 0.452); padding: 30px; width: 100vw; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
-        .page-title { color: #1a5c7b; margin: 0; font-size: 24px; }
-        .back-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 40px; color: white; }
-        .filter-row { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
-        .filter-dropdown { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; cursor: pointer; }
-        .table-scroll-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; }
-        .inventory-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .inventory-table th, .inventory-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        .inventory-table th { background-color: #f8f9fa; color: #1e293b; position: sticky; top: 0; }
-        .discard-btn { padding: 5px 10px; cursor: pointer; background-color: #ef4444; color: white; border: none; border-radius: 4px; }
-    </style>
 </head>
-<body>
+<body class="report-page" style="background-color: #92b7e7;">
 
-    <div class="page-container">
+    <div class="page-container" style="background-color: rgba(251, 252, 254, 0.452);">
         <div class="header-row">
             <h2 class="page-title">Expired Items Report</h2>
             <div style="display: flex; gap: 10px;">
-                <button class="back-btn" style="background-color: #94a3b8;" onclick="window.location.href='indexpage.html'">← Back</button>
+                <button class="back-btn" style="background-color: #94a3b8;" onclick="window.location.href='../dashboard.html'">← Back</button>
                 <button class="back-btn" style="background-color: #059669;" onclick="exportToPDF()">Export to PDF</button>
             </div>
         </div>
@@ -68,13 +55,6 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY",
-            authDomain: "autostock-c3953.firebaseapp.com",
-            databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
         let expiredData = [];
 
         database.ref('InventoryLogs').on('value', (snapshot) => {
