@@ -1,173 +1,154 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoStock - Operations Dashboard</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
+<html>
+    <head>
+        <meta charset="UTF-8"> 
+            <!-- Make it read all human language -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <!-- ensure that the size of browser fit well for device -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+            <!-- core engine -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <title>
+            Autostock-Sign In
+        </title>
+        <link rel="icon" type="images/png" href="autostock.logo.png">
+    </head>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #121826; color: white; margin: 20px; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logout-btn { padding: 8px 16px; background-color: #ef4444; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .logout-btn:hover { background-color: #dc2626; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background-color: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .stat-box { display: inline-block; width: 30%; text-align: center; background: #334155; padding: 15px; border-radius: 8px; margin-right: 2%; box-sizing: border-box; }
-        h1, h2 { color: #38bdf8; margin-top: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
-        th { background-color: #0f172a; color: #94a3b8; }
-        .urgent { color: #ef4444; font-weight: bold; }
-        .chart-wrapper { display: flex; justify-content: center; align-items: center; height: 260px; }
+        body{
+            background-image: linear-gradient(rgba(207, 195, 195, 0.8), rgba(207, 195, 195, 0.8)), url('inventorytwo.jpg');
+            /* two rgba: top and botton of the screen */
+            background-size: cover; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;   
+            display:flex;
+            justify-content: center;
+            align-items: center;
+            height: 130vh;
+            margin: 100;
+        }
+        .brandtitle{
+            position: absolute; /* Breaks it out of the center magnet */
+            top: 30px;          /* Pins it 40 pixels from the top of the screen */
+            justify-content: center;  
+        }
+        h1{
+            font-size:75px;
+            justify-content: first baseline;
+            margin-bottom: 0%;
+        }
+        h3{
+            font-weight: normal;
+        }
+        h2{
+            font-size: 30px;
+        }
+        .login-container {
+            background-color: #031229;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            width: 320px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #38bdf8; 
+            border: none;
+            border-radius: 6px;
+            color: #121826;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0c658e;
+        }
+        .error-message {
+            color: #ef4444;
+            margin-top: 14px;
+            font-size: 13px;
+            min-height: 18px;
+        }
+       input,select{
+        width:80%;
+        padding:10px;
+        border-radius: 5px;
+       }
+      label{
+        text-align: left;
+      }
+
     </style>
-</head>
-<body>
-
-    <div class="header-container">
-        <h1>AutoStock Operations Dashboard</h1>
-        <button class="logout-btn" onclick="logoutUser()">Sign Out</button>
-    </div>
-
-    <div class="card" style="margin-bottom: 20px;">
-        <h2>Warehouse Quantities</h2>
-        <div class="stat-box">
-            <h3>Total Checked In</h3>
-            <h1 id="totalIn">0</h1>
+    <body> 
+        <div class="brandtitle">
+             <h1 style="color: rgb(14, 14, 72);" align="center">AUTOSTOCK</h1>  
+             <h3 style="color: rgb(6, 45, 62);"align="center">AUTOMATED CANNED FOOD STOCK ANALYSIS AND MONITORING SYSTEM</h3>
         </div>
-        <div class="stat-box">
-            <h3>Total Checked Out</h3>
-            <h1 id="totalOut">0</h1>
-        </div>
-        <div class="stat-box">
-            <h3>Total Waste</h3>
-            <h1 id="totalWaste" class="urgent">0</h1>
-        </div>
-    </div>
-
-    <div class="grid-container">
-        <div class="card">
-            <h2>Checkout Reason Analysis</h2>
-            <div class="chart-wrapper">
-                <canvas id="wasteChart"></canvas>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Oldest Stock (FIFO Clearance Priority)</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Category</th>
-                        <th>Check-In Date</th>
-                        <th>Expiry Date</th>
-                    </tr>
-                </thead>
-                <tbody id="fifoTableBody">
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
+        <div class="login-container">
+            <h2 style="color: aliceblue;">WELCOME BACK</h2>
+            <br>
+            <form>
+                <div>
+                <label for="mail" style="color: aliceblue;">User Email: </label>
+                <input type="email" id="mail" name="mail" required> 
+                </div>
+                <br>
+                <br>
+                <div>
+                    <label for="p" style="color: aliceblue;">Password: </label>
+                    <input type="password" id="p" name="p" max="12" required>
+                </div>
+                <br>
+                <br>
+                <div>
+                    <button type="button" onclick="handleLogin()">Sign In</button>
+                    <!-- onclick mean it will connect to the button -->
+                    <!-- type="button" tells the browser stop refresh the page like the normal form -->
+                </div>
+                <div class="error-message" id="errorDiv"></div>
+            </form>
     <script>
-        // Use the exact same config parameters as your login screen
+        // Config credentials for your custom app instance
         const firebaseConfig = {
-            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", // <-- Paste your Web API key here too
+            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", 
             authDomain: "autostock-c3953.firebaseapp.com",
             databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
         
+        // Connect to the operational stack
         firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
-        // SECURITY GUARD: Kick unauthenticated traffic out to security terminal
-        firebase.auth().onAuthStateChanged((user) => {
-            if (!user) {
-                window.location.href = "loginpage.html";
-            }
-        });
+        function handleLogin() {
+            //this code function when user click on the sign in button
+            //getElementById look at specific text box ans grad what user type
+            //errorDiv if wrong password show the red line bfr try again 
+            const email = document.getElementById('mail').value;
+            const password = document.getElementById('p').value;
+            const errorDiv = document.getElementById('errorDiv');
 
-        // Run data pipeline parsing loops from active cloud records
-        database.ref('InventoryLogs').on('value', (snapshot) => {
-            let countIn = 0;
-            let countSold = 0;
-            let countExpired = 0;
-            let countDamaged = 0;
-            let checkInList = [];
+            // Reset error display area on click
+            errorDiv.innerText = ""; 
 
-            snapshot.forEach((childSnapshot) => {
-                let item = childSnapshot.val();
-
-                if (item.Action === "CHECK_IN") {
-                    countIn++;
-                    checkInList.push(item); 
-                } 
-                else if (item.Action === "CHECK_OUT") {
-                    if (item.Reason === "Sold") countSold++;
-                    if (item.Reason === "Expired") countExpired++;
-                    if (item.Reason === "Damaged") countDamaged++;
-                }
-            });
-
-            // Update DOM numeric interfaces
-            document.getElementById('totalIn').innerText = countIn;
-            document.getElementById('totalOut').innerText = (countSold + countExpired + countDamaged);
-            document.getElementById('totalWaste').innerText = (countExpired + countDamaged);
-
-            // Trigger charting canvas engine updates
-            updateChart(countSold, countExpired, countDamaged);
-
-            // Execute FIFO timeline sequencing calculations
-            checkInList.sort((a, b) => new Date(a.Timestamp) - new Date(b.Timestamp));
-            let oldestItems = checkInList.slice(0, 5); // Grab the top 5 oldest rows
-            
-            let tableHTML = "";
-            oldestItems.forEach(item => {
-                tableHTML += `
-                    <tr>
-                        <td>${item.Category.replace('_', ' ')}</td>
-                        <td>${item.Timestamp}</td>
-                        <td class="urgent">${item.ExpiryDate || 'N/A'}</td>
-                    </tr>
-                `;
-            });
-            document.getElementById('fifoTableBody').innerHTML = tableHTML;
-        });
-
-        // Chart render generation logic block
-        let myChart;
-        function updateChart(sold, expired, damaged) {
-            const ctx = document.getElementById('wasteChart').getContext('2d');
-            if(myChart) myChart.destroy(); // Wipe cache buffer cleanly before rebuilds
-
-            myChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Items Sold', 'Expired (Waste)', 'Damaged (Waste)'],
-                    datasets: [{
-                        data: [sold, expired, damaged],
-                        backgroundColor: ['#22c55e', '#f97316', '#ef4444'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: 'white' } } }
-                }
-            });
-        }
-
-        // Drop active user identity session token on click
-        function logoutUser() {
-            firebase.auth().signOut().then(() => {
-                window.location.href = "loginpage.html";
-            });
+            // Execute cloud identity verification
+            firebase.auth().signInWithEmailAndPassword(email, password)
+            //send the id and password to server to ask can sign in or not
+                .then((userCredential) => {
+                    // Valid identity verified -> open main terminal dashboard screen
+                    window.location.href = "indexpage.html";
+                    //then open the dashboard for user
+                })
+                .catch((error) => {
+                    // Problem found -> parse and translate cloud network messages
+                    if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+                        errorDiv.innerText = "Invalid email credentials or password.";
+                    } else {
+                        errorDiv.innerText ="Invalid Email or Password. Please try again.";
+                    }
+                });
         }
     </script>
-</body>
+         </div>
+    </body>
 </html>
