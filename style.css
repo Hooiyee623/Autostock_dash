@@ -1,0 +1,189 @@
+/* 1. Global Reset */
+* { box-sizing: border-box; } /* CRITICAL: Includes padding in height/width calculations */
+
+body {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    background-color: rgb(235, 232, 229);
+    margin: 0;
+    height: 100vh;
+    overflow: hidden; 
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-panel {
+    background-color: rgb(30, 59, 105);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    gap: 8px;
+}
+
+.header-row { display: flex; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+.metric-row { display: flex; gap: 10px; flex: 0 0 auto; }
+
+/* 2. Chart Row - Added padding-bottom to ensure X-axis labels aren't clipped */
+.chart-row {
+    display: flex;
+    gap: 10px;
+    flex: 2;
+    min-height: 0;
+    padding-bottom: 5px; 
+}
+
+.chart-box {
+    background-color: aliceblue; 
+    border-radius: 8px;
+    padding: 10px;
+    flex: 1; 
+    display: flex; 
+    flex-direction: column;
+    min-height: 0; /* Important: Allows the chart to respect parent constraints */
+}
+
+/* 3. FIFO Card - Title and Container Logic */
+.fifo-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    flex: 1.2; 
+    display: flex;
+    flex-direction: column;
+    min-height: 0; 
+}
+
+/* Force title to stay at the top without expanding */
+.fifo-card .chart-title {
+    flex: 0 0 auto;
+    margin-bottom: 5px;
+}
+
+.dashed-border-container {
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 5px;
+    background-color: #f8fafc;
+    flex: 1; /* Fills remaining space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 4. Table Container */
+.dark-table-container {
+    background-color: #16202c; 
+    border-radius: 6px;
+    padding: 0;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.dark-table {
+    width: 100%;
+    table-layout: fixed; /* Prevents columns from expanding past box */
+    border-collapse: collapse;
+    color: #f8fafc;
+    text-align: left;
+}
+
+/* Ensure header sticks to top of table container */
+.dark-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #16202c;
+    z-index: 1;
+}
+
+.dark-table th, .dark-table td {
+    padding: 8px;
+    font-size: 12px;
+    border-bottom: 1px solid #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 5. Utility Styles */
+.metric-panelcheckin, .metric-panelcheckout, .metric-panelexpiry, .metric-paneldamaged {
+    background-color: aliceblue;
+    border-radius: 8px;
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+}
+
+/* Hover Effect: Soften the color */
+.metric-panelcheckin:hover, 
+.metric-panelcheckout:hover, 
+.metric-panelexpiry:hover, 
+.metric-paneldamaged:hover {
+    background-color: #e0f2fe; 
+}
+
+.dashboard-title { color: white; font-size: 20px; font-weight: 600; margin: 0; }
+.chart-title { color: rgb(4, 9, 13); font-size: 17px; font-weight: 600; margin: 0; }
+.metric-numone, .metric-numtwo, .metric-numthree { font-size: 16px; font-weight: 600; }
+.logout-btn { padding: 5px 12px; background-color: #ef4444; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+.priority-badge { background-color: #ea580c; color: white; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+.checkout-btn { background-color: #22c55e; color: white; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+/* The parent panel: horizontal layout */
+.metric-panelcheckin, .metric-panelcheckout, .metric-panelexpiry, .metric-paneldamaged {
+    display: flex;
+    align-items: center;    /* Vertically aligns icon and text */
+    padding: 15px;
+    background-color: aliceblue;
+    border-radius: 8px;
+    gap: 15px;              /* Space between icon and text */
+}
+
+/* The icon: make it large */
+.material-symbols-outlined {
+    font-size: 48px !important; /* Adjust size to match your preference */
+    color: #64748b;             /* Or your theme color */
+}
+
+/* The text stack: forces label above number */
+.metric-text {
+    display: flex;
+    flex-direction: column; /* Stacked: label top, number bottom */
+    align-items: flex-start;
+}
+
+/* Ensure the number is large and bold */
+.metric-numone, .metric-numtwo, .metric-numthree {
+    font-size: 24px;
+    font-weight: bold;
+align-items: center; }    
+
+/* Centers them vertically */
+.calendar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px; 
+    height: 42px;
+    background-color: #1e293b; /* Dark blue background */
+    color: #ffffff; /* White icon */
+    border: 1px solid #334155; /* Subtle border to give it shape */
+    border-radius: 8px; 
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: all 0.2s ease; 
+            }
+            
+    /* How the button reacts when the mouse hovers over it */
+    .calendar-btn:hover {
+    background-color: #334155; /* Slightly lighter blue on hover */
+    border-color: #475569;
+    transform: translateY(-2px); /* Lifts up slightly */
+box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+            }
+            
+    /* How the button reacts when actually clicked */
+.calendar-btn:active {
+ transform: translateY(0); /* Pushes back down */
+box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            }

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-Out History</title>
+    <link rel="icon" type="image/png" href="autostock.logo.png">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: rgb(168, 226, 239); margin: 0; }
+        .page-container { background-color: rgb(211, 237, 240); padding: 30px; width: 100vw; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        .page-title { color: #1a5c7b; margin: 0; font-size: 24px; }
+        .back-btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; height: 40px; color: white; }
+        .filter-row { display: flex; flex-direction: row; justify-content: flex-end; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
+        .filter-dropdown { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; cursor: pointer; flex: 1; max-width: 200px; }
+        .table-scroll-container { flex: 1; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background-color: white; }
+        .inventory-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .inventory-table th, .inventory-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .inventory-table th { background-color: #f8f9fa; color: #1e293b; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <div class="page-container">
+        <div class="header-row">
+            <h2 class="page-title">Total Check-Out History</h2>
+            <div class="button-group" style="display: flex; gap: 10px;">
+                <button class="back-btn" style="background-color: #94a3b8;" onclick="window.location.href='indexpage.html'">← Back</button>
+                <button class="back-btn" style="background-color: #059669;" onclick="exportToPDF()">Export to PDF</button>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <input type="text" id="searchOutput" class="filter-dropdown" placeholder="Search Item ID..." onkeyup="renderTable()">
+            <select id="categoryFilter" class="filter-dropdown" onchange="renderTable()">
+                <option value="ALL">All Categories</option>
+                <option value="Category_A">Category A</option>
+                <option value="Category_B">Category B</option>
+                <option value="Category_C">Category C</option>
+            </select>
+            <select id="monthFilter" class="filter-dropdown" onchange="renderTable()">
+                <option value="ALL">All Months</option>
+                <option value="01">January</option><option value="02">February</option>
+                <option value="03">March</option><option value="04">April</option>
+                <option value="05">May</option><option value="06">June</option>
+                <option value="07">July</option><option value="08">August</option>
+                <option value="09">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+            </select>
+        </div>
+
+        <div class="table-scroll-container">
+            <table class="inventory-table">
+                <thead>
+                    <tr><th>No.</th><th>Item ID</th><th>Category</th><th>Timestamp</th><th>Reason</th><th>PIC</th></tr>
+                </thead>
+                <tbody id="checkOutTableBody">
+                    <tr><td colspan='6' style='text-align: center;'>Loading Firebase Data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", 
+            authDomain: "autostock-c3953.firebaseapp.com",
+            databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        let checkOutData = []; 
+
+        database.ref('InventoryLogs').on('value', (snapshot) => {
+            checkOutData = []; 
+            snapshot.forEach((child) => {
+                if (child.val().Action === "CHECK_OUT") checkOutData.push(child.val());
+            });
+            renderTable();
+        });
+
+        function renderTable() {
+            const tableBody = document.getElementById('checkOutTableBody');
+            const search = document.getElementById('searchOutput').value.toLowerCase();
+            const cat = document.getElementById('categoryFilter').value;
+            const mon = document.getElementById('monthFilter').value;
+            tableBody.innerHTML = ""; 
+
+            let filtered = checkOutData.filter(item => {
+                const sMatch = (item.ItemID || "").toLowerCase().includes(search);
+                const cMatch = (cat === "ALL" || item.Category === cat);
+                const mMatch = (mon === "ALL" || (item.Timestamp && item.Timestamp.split(' ')[0].split('-')[1] === mon));
+                return sMatch && cMatch && mMatch;
+            });
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = "<tr><td colspan='6' style='text-align: center;'>No logs found.</td></tr>";
+                return;
+            }
+
+            filtered.forEach((item, i) => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${item.ItemID || 'N/A'}</td>
+                        <td>${item.Category || 'N/A'}</td>
+                        <td>${item.Timestamp || '-'}</td>
+                        <td>${item.Reason || 'N/A'}</td>
+                        <td>${item.PIC || 'Unknown'}</td>
+                    </tr>`;
+            });
+
+            tableBody.innerHTML += `
+                <tr style="background-color: #e2e8f0; font-weight: bold;">
+                    <td colspan="5" style="text-align: right;">Total:</td>
+                    <td>${filtered.length}</td>
+                </tr>`;
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Check-Out History Report", 14, 20);
+            doc.autoTable({ html: '.inventory-table', startY: 30 });
+            doc.save("CheckOut_History.pdf");
+        }
+    </script>
+</body>
+</html>

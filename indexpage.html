@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en"> 
+<head>
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>AutoStock Dashboard</title>
+    <link rel="icon" type="image/png" href="autostock.logo.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+    <div class="dashboard-panel">
+        
+       <!-- Advanced Button Styling -->
+        <div class="header-row"> 
+            <h1 class="dashboard-title">Autostock Inventory Dashboard</h1>
+            
+            <!-- Action Buttons Container -->
+            <div style="display: flex; gap: 12px; align-items: center;">
+                
+                <!-- Upgraded Calendar Icon Button -->
+                <button class="calendar-btn" onclick="window.open('https://calendar.google.com/calendar/embed?src=ba743a18d309c9a94c3eb148bf00842512f8c0cf9eaecc56ccac2833771e7704%40group.calendar.google.com&ctz=Asia%2FKuala_Lumpur')" title="View Restock Calendar">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">calendar_month</span>
+                </button>
+                
+                <!-- Existing Sign Out Button -->
+                <button class="logout-btn" onclick="logoutUser()">Sign Out</button>
+            </div>
+        </div>
+        
+        <div class="metric-row">
+            <div class="metric-panelcheckin" onclick="window.location.href='checkin.html'" style="cursor: pointer;">
+                <div class="metric-icon">
+                    <span class="material-symbols-outlined">inventory</span>
+                </div>
+                <div class="metric-text">
+                    <div class="metric-label">Total Check In</div>
+                    <div class="metric-numone" id="totalCheckInCount">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-panelcheckout" onclick="window.location.href='checkout.html'" style="cursor: pointer;">
+                <div class="metric-icon">
+                    <span class="material-symbols-outlined">local_shipping</span>
+                </div>
+                <div class="metric-text">
+                    <div class="metric-label">Total Check Out</div>
+                    <div class="metric-numone" id="totalCheckOutCount">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-panelexpiry" onclick="window.location.href='expired.html'" style="cursor: pointer;">
+                <div class="metric-icon">
+                    <span class="material-symbols-outlined">hourglass_disabled</span>
+                </div>
+                <div class="metric-text">
+                    <div class="metric-label">Expired Items</div>
+                    <div class="metric-numtwo" id="totalExpiredcount">0</div>
+                </div>
+            </div>
+            
+            <div class="metric-paneldamaged" onclick="window.location.href='damaged.html'" style="cursor: pointer;">
+                <div class="metric-icon">
+                    <span class="material-symbols-outlined">destruction</span>
+                </div>
+                <div class="metric-text">
+                    <div class="metric-label">Damaged Item</div>
+                    <div class="metric-numthree" id="totalDamagedcount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-box" style="flex: 2;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h3 class="chart-title" style="margin-bottom: 0;">Checkout Loss & Spoilage Ratio</h3>
+                    
+                    <select id="monthFilter" onchange="filterWasteData()" style="padding: 6px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: bold; cursor: pointer;">
+                        <option value="all">All Time</option>
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                
+                <div id="dangerAlert" style="display: none; background-color: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-weight: bold; border: 1px dashed #ef4444; font-size: 13px;">
+                    ⚠️ ACTION REQUIRED: A category has exceeded the maximum safe loss limit!
+                </div>
+
+                <div style="position: relative; flex:1; width: 100%; ">
+                    <canvas id="wasterate"></canvas>
+                </div>
+            </div>
+
+            <!-- Total Stock On Hand - Contained Layout -->
+          <div class="chart-box" style="flex: 1; display: flex; flex-direction: column;">
+                <h3 class="chart-title">Storage Level </h3>
+                
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 15px; margin-top: 10px;">
+                    
+                    <div style="display: flex; flex-direction: row; justify-content: space-around; width: 100%;">
+                        <div style="text-align: center; flex: 1;">
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #475569; font-weight: bold;">Category A</h4>
+                            <div style="position: relative; width: 100%; max-width: 260px; height: 150px; margin: 0 auto;">
+                                <canvas id="gaugeA"></canvas>
+                            </div>
+                        </div>
+                        <div style="text-align: center; flex: 1;">
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #475569; font-weight: bold;">Category B</h4>
+                            <div style="position: relative; width: 100%; max-width: 260px; height: 150px; margin: 0 auto;">
+                                <canvas id="gaugeB"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: row; justify-content: center; width: 100%;">
+                        <div style="text-align: center; width: 50%;">
+                            <h4 style="margin: 0 0 5px 0; font-size: 15px; color: #475569; font-weight: bold;">Category C</h4>
+                            <div style="position: relative; width: 100%; max-width: 260px; height: 150px; margin: 0 auto;">
+                                <canvas id="gaugeC"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>  
+        </div>
+        
+        <div class="fifo-card"> 
+            <h3 class="chart-title">FIFO Check-Out Queue</h3>
+            <div class="dashed-border-container">
+                <div class="dark-table-container">
+                    <table class="dark-table">
+                        <thead>
+                            <tr>
+                                <th>Priority</th>
+                                <th>Category</th>
+                                <th>Item ID</th>
+                                <th>Check-in Date</th>
+                                <th>Est. Expiry</th>
+                                <th>Action</th> 
+                            </tr>
+                        </thead>
+                        <tbody id="priorityTableBody">
+                            <tr><td colspan="6" style="text-align: center;">Loading Queue...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div> 
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", 
+            authDomain: "autostock-c3953.firebaseapp.com",
+            databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+
+        firebase.auth().onAuthStateChanged((user) => {
+            if (!user) { 
+                window.location.href = "loginpage.html";
+            }
+        });
+        
+        function logoutUser() { 
+            firebase.auth().signOut().then(() => {
+                window.location.href = "loginpage.html";
+            });
+        }
+
+        const logsRef = database.ref('InventoryLogs');
+        logsRef.on('value', (snapshot) => {
+            let totalCheckIns = 0; 
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    if (childSnapshot.val().Action === "CHECK_IN") totalCheckIns++; 
+                });
+            }
+            document.getElementById('totalCheckInCount').innerText = totalCheckIns;
+        });
+
+        const logsRefONE = database.ref('InventoryLogs');
+        logsRefONE.on('value', (snapshot) => {
+            let totalCheckOuts = 0; 
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    if (childSnapshot.val().Action === "CHECK_OUT") totalCheckOuts++; 
+                });
+            }
+            document.getElementById('totalCheckOutCount').innerText = totalCheckOuts;
+        });
+
+        const TELEGRAM_BOT_TOKEN = "8009222810:AAETgP2yfgiPRh-dtGi2hd5SKYMfSI7bJEM"; 
+        const TELEGRAM_CHAT_ID = "8250538230";
+
+        function sendTelegramAlert(messageText) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id:TELEGRAM_CHAT_ID , text: messageText })
+            }).catch(error => console.error("Telegram API Error:", error));
+        }
+
+        const logsRefTWO = database.ref('InventoryLogs');
+        let alertedItems = []; 
+        let isFirstLoadExpired = true;
+
+        logsRefTWO.on('value', (snapshot) => {
+            let totalexpired = 0; 
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const item = childSnapshot.val();
+                    const itemKey = childSnapshot.key; 
+                    
+                    if (item.Action === "CHECK_IN" && item.ExpiryDate) {
+                        const safeDateFormat = item.ExpiryDate.replace(' ', 'T');
+                        const itemExpiry = new Date(safeDateFormat);
+                        itemExpiry.setHours(0, 0, 0, 0);
+
+                        if (itemExpiry <= today) {
+                            totalexpired++; 
+                            if (!alertedItems.includes(itemKey)) {
+                                if (!isFirstLoadExpired) {
+                                    const cat = item.Category || "Unknown Category";
+                                    sendTelegramAlert(`⚠️ Sorting Alert: A ${cat} item has reached its expiry date! Please clear the bin.`);
+                                }
+                                alertedItems.push(itemKey);
+                            }
+                        }
+                    }
+                });
+            }
+            isFirstLoadExpired = false;
+            document.getElementById('totalExpiredcount').innerText = totalexpired;
+        });
+
+        const logsRefThree = database.ref('InventoryLogs');
+        logsRefThree.on('value', (snapshot) => {
+            let totaldamaged = 0; 
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const item = childSnapshot.val();
+                    if (item.Action === "CHECK_OUT" && item.Reason === "Damaged") totaldamaged++; 
+                });
+            }
+            document.getElementById('totalDamagedcount').innerText = totaldamaged;
+        });
+
+
+        // =========================================================
+        // GAUGE CHARTS SYSTEM (Category A, B, C)
+        // =========================================================
+
+     // 1. Create a custom Chart.js Plugin to draw the needle
+       // 1. Create a custom Chart.js Plugin to draw the needle
+       // 1. Create a custom Chart.js Plugin to draw the needle
+        // 1. Create a custom Chart.js Plugin to draw the needle
+        const gaugeNeedlePlugin = {
+            id: 'gaugeNeedle',
+            afterDatasetDraw(chart, args, options) {
+                // CRITICAL FIX: Only draw the needle if it's a doughnut chart!
+                if (chart.config.type !== 'doughnut') return;
+
+                const { ctx, data } = chart;
+                const meta = chart.getDatasetMeta(0);
+                if (!meta.data || !meta.data.length) return;
+
+                const cx = meta.data[0].x;
+                const cy = meta.data[0].y;
+                
+                const value = data.datasets[0].needleValue || 0;
+                const max = 50;
+
+                let percent = value / max;
+                if (percent > 1) percent = 1;
+                if (percent < 0) percent = 0;
+                const angle = Math.PI + (percent * Math.PI); 
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+
+                // Thicker, longer needle for bigger chart
+                ctx.beginPath();
+                ctx.moveTo(0, -4);
+                ctx.lineTo(meta.data[0].outerRadius - 8, 0);
+                ctx.lineTo(0, 4);
+                ctx.fillStyle = '#1e293b'; 
+                ctx.fill();
+
+                // Bigger center dot
+                ctx.beginPath();
+                ctx.arc(0, 0, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Larger text adjusted for the expanded layout
+                ctx.font = 'bold 24px sans-serif';
+                ctx.fillStyle = '#0f172a';
+                ctx.textAlign = 'center';
+                ctx.fillText(value, cx, cy + 32);
+                
+                ctx.font = '13px sans-serif';
+                ctx.fillStyle = '#64748b';
+                ctx.fillText('Items', cx, cy + 50);
+            }
+        };
+        Chart.register(gaugeNeedlePlugin);
+        // 2. Standard Configuration for all 3 gauges
+        const gaugeConfig = {
+            type: 'doughnut',
+            data: {
+                labels: ['Normal', 'Warning', 'Critical'],
+                datasets: [{
+                    data: [20, 15, 15], 
+                    backgroundColor: ['#4ade80', '#facc15', '#ef4444'],
+                    borderWidth: 0, 
+                    needleValue: 0 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                rotation: 270, 
+                circumference: 180, 
+                cutout: '60%', 
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }
+                },
+                layout: {
+                    // Increased bottom padding to 60 to stop text from clipping
+                    padding: { bottom: 60, left: 10, right: 10 } 
+                }
+            }
+        };
+        
+        
+        const ctxA = document.getElementById('gaugeA').getContext('2d');
+        const gaugeChartA = new Chart(ctxA, JSON.parse(JSON.stringify(gaugeConfig)));
+
+        const ctxB = document.getElementById('gaugeB').getContext('2d');
+        const gaugeChartB = new Chart(ctxB, JSON.parse(JSON.stringify(gaugeConfig)));
+
+        const ctxC = document.getElementById('gaugeC').getContext('2d');
+        const gaugeChartC = new Chart(ctxC, JSON.parse(JSON.stringify(gaugeConfig)));
+
+        const logsRefFour = database.ref('InventoryLogs');
+        logsRefFour.on('value', (snapshot) => {
+            let stockA = 0; let stockB = 0; let stockC = 0;
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const item = childSnapshot.val();
+                    let modifier = 0;
+                    if (item.Action === "CHECK_IN") modifier = 1;
+                    if (item.Action === "CHECK_OUT") modifier = -1;
+
+                    if (item.Category === "Category_A") stockA += modifier;
+                    else if (item.Category === "Category_B") stockB += modifier;
+                    else if (item.Category === "Category_C") stockC += modifier;
+                });
+            }
+            
+            gaugeChartA.data.datasets[0].needleValue = stockA;
+            gaugeChartA.update();
+
+            gaugeChartB.data.datasets[0].needleValue = stockB;
+            gaugeChartB.update();
+
+            gaugeChartC.data.datasets[0].needleValue = stockC;
+            gaugeChartC.update();
+        });
+
+        // =========================================================
+        // HORIZONTAL BAR CHART SYSTEM WITH ALERTS & FILTERS
+        // =========================================================
+        const wasteCanvas = document.getElementById('wasterate').getContext('2d');
+        const WARNING_LIMIT = 30; 
+
+        let myWasteChart = new Chart(wasteCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['Category A', 'Category B', 'Category C'], 
+                datasets: [
+                    {
+                        type: 'line',
+                        label: `Max Acceptable Loss (${WARNING_LIMIT}%) - STAY BELOW`,
+                        data: [WARNING_LIMIT, WARNING_LIMIT, WARNING_LIMIT], 
+                        borderColor: '#ef4444', 
+                        borderWidth: 2,
+                        borderDash: [5, 5], 
+                        pointRadius: 0, 
+                        fill: false,
+                        order: 1 
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Expired Loss (%)',
+                        data: [0, 0, 0], 
+                        backgroundColor: '#f87171', 
+                        borderRadius: 4,
+                        order: 2
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Damaged Loss (%)',
+                        data: [0, 0, 0], 
+                        backgroundColor: '#fbbf24', 
+                        borderRadius: 4,
+                        order: 3
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y', 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                },
+                scales: {
+                    x: { 
+                        beginAtZero: true,
+                        max: 100, 
+                        title: { display: true, text: 'Loss Rate (%)' }
+                    }
+                }
+            }
+        });
+
+        let rawWasteData = []; 
+        const logsRefWaste = database.ref('InventoryLogs');
+
+        logsRefWaste.on('value', (snapshot) => {
+            rawWasteData = []; 
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    rawWasteData.push(childSnapshot.val());
+                });
+            }
+            filterWasteData(); 
+        });
+
+        function filterWasteData() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+
+            let stats = {
+                'Category_A': { expired: 0, damaged: 0, totalOut: 0 },
+                'Category_B': { expired: 0, damaged: 0, totalOut: 0 },
+                'Category_C': { expired: 0, damaged: 0, totalOut: 0 }
+            };
+
+            rawWasteData.forEach((item) => {
+                const cat = item.Category; 
+
+                if (item.Action === "CHECK_OUT" && stats[cat]) {
+                    let itemMonth = "all";
+                    
+                    if (item.Timestamp) {
+                        const dateParts = item.Timestamp.split(' ')[0].split('-'); 
+                        if (dateParts.length >= 2) {
+                            itemMonth = dateParts[1]; 
+                        }
+                    }
+
+                    if (selectedMonth === "all" || selectedMonth === itemMonth) {
+                        stats[cat].totalOut++;
+                        if (item.Reason === "Expired") {
+                            stats[cat].expired++;
+                        } else if (item.Reason === "Damaged") {
+                            stats[cat].damaged++;
+                        }
+                    }
+                }
+            });
+
+            let expiredRates = [0, 0, 0];
+            let damagedRates = [0, 0, 0];
+            const categoryKeys = ['Category_A', 'Category_B', 'Category_C'];
+
+            categoryKeys.forEach((key, index) => {
+                const total = stats[key].totalOut;
+                if (total > 0) { 
+                    expiredRates[index] = ((stats[key].expired / total) * 100).toFixed(2);
+                    damagedRates[index] = ((stats[key].damaged / total) * 100).toFixed(2);
+                }
+            });
+
+            let isOverLimit = false;
+            let problemCategories = [];
+
+            for (let i = 0; i < 3; i++) {
+                if (parseFloat(expiredRates[i]) > WARNING_LIMIT || parseFloat(damagedRates[i]) > WARNING_LIMIT) {
+                    isOverLimit = true;
+                    problemCategories.push(categoryKeys[i].replace('_', ' ')); 
+                }
+            }
+
+            const alertBox = document.getElementById('dangerAlert');
+
+            if (isOverLimit) {
+                alertBox.style.display = "block";
+                alertBox.innerText = `⚠️ ACTION REQUIRED: ${problemCategories.join(', ')} has exceeded the ${WARNING_LIMIT}% safe loss limit!`;
+            } else {
+                alertBox.style.display = "none"; 
+            }
+
+            myWasteChart.data.datasets[1].data = expiredRates;
+            myWasteChart.data.datasets[2].data = damagedRates; 
+            myWasteChart.update();
+        }
+
+        // =========================================================
+        // FIFO CHECKOUT QUEUE
+        // =========================================================
+        const logsRefFIFO = database.ref('InventoryLogs');
+        logsRefFIFO.on('value', (snapshot) => {
+            const priorityTable = document.getElementById('priorityTableBody');
+            priorityTable.innerHTML = ""; 
+            
+            let inStockItems = {}; 
+
+            if (snapshot.exists()) {
+                snapshot.forEach((childSnapshot) => {
+                    const item = childSnapshot.val();
+                    if (item.ItemID) {
+                        if (item.Action === "CHECK_IN") {
+                            inStockItems[item.ItemID] = item; 
+                        } else if (item.Action === "CHECK_OUT") {
+                            delete inStockItems[item.ItemID]; 
+                        }
+                    }
+                });
+            }
+
+            let groupedByCategory = {};
+            Object.values(inStockItems).forEach(item => {
+                const cat = item.Category || 'Unknown';
+                if (!groupedByCategory[cat]) {
+                    groupedByCategory[cat] = [];
+                }
+                groupedByCategory[cat].push(item);
+            });
+
+            let urgentItems = [];
+
+            for (let cat in groupedByCategory) {
+                let itemsInThisCat = groupedByCategory[cat];
+                itemsInThisCat.sort((a, b) => {
+                    let dateA = new Date((a.ExpiryDate || a.Timestamp).replace(' ', 'T'));
+                    let dateB = new Date((b.ExpiryDate || b.Timestamp).replace(' ', 'T'));
+                    return dateA - dateB; 
+                });
+                if (itemsInThisCat.length > 0) {
+                    urgentItems.push(itemsInThisCat[0]);
+                }
+            }
+
+            urgentItems.sort((a, b) => {
+                let dateA = new Date((a.ExpiryDate || a.Timestamp).replace(' ', 'T'));
+                let dateB = new Date((b.ExpiryDate || b.Timestamp).replace(' ', 'T'));
+                return dateA - dateB;
+            });
+
+            if (urgentItems.length === 0) {
+                priorityTable.innerHTML = `<tr><td colspan="6" style="text-align: center;">All clear! No items in stock.</td></tr>`;
+            } else {
+                urgentItems.forEach((item, index) => {
+                    const isHighlight = index === 0 ? 'highlight-row' : '';
+                    const badgeStyle = index !== 0 ? 'style="background-color: #94a3b8;"' : '';
+
+                    const row = `
+                        <tr class="${isHighlight}">
+                            <td><span class="priority-badge" ${badgeStyle}>${index + 1}</span></td>
+                            <td>${item.Category || 'Unknown'}</td>
+                            <td>${item.ItemID || 'No ID'}</td>
+                            <td>${item.Timestamp || '-'}</td>
+                            <td>${item.ExpiryDate || '-'}</td>
+                            <td><button class="checkout-btn">PENDING</button></td>
+                        </tr>
+                    `;
+                    priorityTable.innerHTML += row;
+                });
+            }
+        });
+
+  function getStockCounts() {
+  var url = "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app/InventoryLogs.json";
+  var response = UrlFetchApp.fetch(url);
+  var logs = JSON.parse(response.getContentText());
+  
+  var counts = { "Category_A": 0, "Category_B": 0, "Category_C": 0 };
+  
+  // Logic to calculate current stock based on your logs
+  for (var key in logs) {
+    var item = logs[key];
+    if (item.Action === "CHECK_IN") counts[item.Category]++;
+    if (item.Action === "CHECK_OUT") counts[item.Category]--;
+  }
+  return counts;
+}
+
+function checkAndSchedule() {
+  var stock = getStockCounts();
+  var THRESHOLD = 5; // Your low stock trigger
+  var cal = CalendarApp.getCalendarById('ba743a18d309c9a94c3eb148bf00842512f8c0cf9eaecc56ccac2833771e7704@group.calendar.google.com');
+  
+  for (var category in stock) {
+    if (stock[category] < THRESHOLD) {
+      // Check if an event already exists for this today to prevent spam
+      var events = cal.getEventsForDay(new Date(), {search: category});
+      
+      if (events.length === 0) {
+        cal.createEvent('⚠️ Restock Alert: ' + category, new Date(), new Date(Date.now() + 3600000));
+        Logger.log('Scheduled restock for ' + category);
+      }
+    }
+  }
+}
+    </script>
+</body>
+</html>

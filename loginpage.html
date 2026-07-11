@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8"> 
+            <!-- Make it read all human language -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <!-- ensure that the size of browser fit well for device -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+            <!-- core engine -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <title>
+            Autostock-Sign In
+        </title>
+        <link rel="icon" type="images/png" href="autostock.logo.png">
+    </head>
+    <style>
+        body{
+            background-image: linear-gradient(rgba(207, 195, 195, 0.8), rgba(207, 195, 195, 0.8)), url('inventorytwo.jpg');
+            /* two rgba: top and botton of the screen */
+            background-size: cover; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;   
+            display:flex;
+            justify-content: center;
+            align-items: center;
+            height: 130vh;
+            margin: 100;
+        }
+        .brandtitle{
+            position: absolute; /* Breaks it out of the center magnet */
+            top: 30px;          /* Pins it 40 pixels from the top of the screen */
+            justify-content: center;  
+        }
+        h1{
+            font-size:75px;
+            justify-content: first baseline;
+            margin-bottom: 0%;
+        }
+        h3{
+            font-weight: normal;
+        }
+        h2{
+            font-size: 30px;
+        }
+        .login-container {
+            background-color: #031229;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            width: 320px;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #38bdf8; 
+            border: none;
+            border-radius: 6px;
+            color: #121826;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0c658e;
+        }
+        .error-message {
+            color: #ef4444;
+            margin-top: 14px;
+            font-size: 13px;
+            min-height: 18px;
+        }
+       input,select{
+        width:80%;
+        padding:10px;
+        border-radius: 5px;
+       }
+      label{
+        text-align: left;
+      }
+
+    </style>
+    <body> 
+        <div class="brandtitle">
+             <h1 style="color: rgb(14, 14, 72);" align="center">AUTOSTOCK</h1>  
+             <h3 style="color: rgb(6, 45, 62);"align="center">AUTOMATED CANNED FOOD STOCK ANALYSIS AND MONITORING SYSTEM</h3>
+        </div>
+        <div class="login-container">
+            <h2 style="color: aliceblue;">WELCOME BACK</h2>
+            <br>
+            <form>
+                <div>
+                <label for="mail" style="color: aliceblue;">User Email: </label>
+                <input type="email" id="mail" name="mail" required> 
+                </div>
+                <br>
+                <br>
+                <div>
+                    <label for="p" style="color: aliceblue;">Password: </label>
+                    <input type="password" id="p" name="p" max="12" required>
+                </div>
+                <br>
+                <br>
+                <div>
+                    <button type="button" onclick="handleLogin()">Sign In</button>
+                    <!-- onclick mean it will connect to the button -->
+                    <!-- type="button" tells the browser stop refresh the page like the normal form -->
+                </div>
+                <div class="error-message" id="errorDiv"></div>
+            </form>
+    <script>
+        // Config credentials for your custom app instance
+        const firebaseConfig = {
+            apiKey: "AIzaSyBhBTqQ1iadLatbKyD7DE7UM7gihfLjYEY", 
+            authDomain: "autostock-c3953.firebaseapp.com",
+            databaseURL: "https://autostock-c3953-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        
+        // Connect to the operational stack
+        firebase.initializeApp(firebaseConfig);
+
+        function handleLogin() {
+            //this code function when user click on the sign in button
+            //getElementById look at specific text box ans grad what user type
+            //errorDiv if wrong password show the red line bfr try again 
+            const email = document.getElementById('mail').value;
+            const password = document.getElementById('p').value;
+            const errorDiv = document.getElementById('errorDiv');
+
+            // Reset error display area on click
+            errorDiv.innerText = ""; 
+
+            // Execute cloud identity verification
+            firebase.auth().signInWithEmailAndPassword(email, password)
+            //send the id and password to server to ask can sign in or not
+                .then((userCredential) => {
+                    // Valid identity verified -> open main terminal dashboard screen
+                    window.location.href = "indexpage.html";
+                    //then open the dashboard for user
+                })
+                .catch((error) => {
+                    // Problem found -> parse and translate cloud network messages
+                    if (error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+                        errorDiv.innerText = "Invalid email credentials or password.";
+                    } else {
+                        errorDiv.innerText ="Invalid Email or Password. Please try again.";
+                    }
+                });
+        }
+    </script>
+         </div>
+    </body>
+</html>
