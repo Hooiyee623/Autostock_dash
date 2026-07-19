@@ -149,21 +149,13 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Checkout Loss &amp; Spoilage Ratio</span>
-                    <select id="monthFilter" class="month-select" onchange="filterWasteData()">
-                        <option value="all">All Time</option>
-                        <option value="01">January</option>
-                        <option value="02">February</option>
-                        <option value="03">March</option>
-                        <option value="04">April</option>
-                        <option value="05">May</option>
-                        <option value="06">June</option>
-                        <option value="07">July</option>
-                        <option value="08">August</option>
-                        <option value="09">September</option>
-                        <option value="10">October</option>
-                        <option value="11">November</option>
-                        <option value="12">December</option>
-                    </select>
+                    <div class="week-range-wrap">
+                        <label class="week-label">Week</label>
+                        <input type="number" id="weekStart" class="week-input" value="1"  min="1" max="53" onchange="filterWasteData()" readonly>
+                        <span class="week-label">–</span>
+                        <input type="number" id="weekEnd"   class="week-input" value="53" min="1" max="53" onchange="filterWasteData()" readonly>
+                        <span class="week-label">of 2026</span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="dangerAlert" class="danger-alert"></div>
@@ -182,18 +174,27 @@
                     <div class="gauge-grid">
                         <div class="gauge-row">
                             <div class="gauge-item">
+                                <div class="stock-circle" id="gaugeA">
+                                    <span class="stock-circle-num">—</span>
+                                    <span class="stock-circle-label">items</span>
+                                </div>
                                 <div class="gauge-label">Category A</div>
-                                <div class="gauge-canvas-wrap"><canvas id="gaugeA"></canvas></div>
                             </div>
                             <div class="gauge-item">
+                                <div class="stock-circle" id="gaugeB">
+                                    <span class="stock-circle-num">—</span>
+                                    <span class="stock-circle-label">items</span>
+                                </div>
                                 <div class="gauge-label">Category B</div>
-                                <div class="gauge-canvas-wrap"><canvas id="gaugeB"></canvas></div>
                             </div>
                         </div>
                         <div class="gauge-row center">
-                            <div class="gauge-item" style="max-width: 50%;">
+                            <div class="gauge-item">
+                                <div class="stock-circle" id="gaugeC">
+                                    <span class="stock-circle-num">—</span>
+                                    <span class="stock-circle-label">items</span>
+                                </div>
                                 <div class="gauge-label">Category C</div>
-                                <div class="gauge-canvas-wrap"><canvas id="gaugeC"></canvas></div>
                             </div>
                         </div>
                     </div>
@@ -270,86 +271,100 @@ Chart.defaults.font.family = "'Inter', sans-serif";
 Chart.defaults.color = '#64748b';
 
 /* ════════════════════════════════════════════
-   Gauge Charts — init before data arrives
+   Gauge Charts — gradient arc + needle
 ════════════════════════════════════════════ */
-const gaugeNeedlePlugin = {
-    id: 'gaugeNeedle',
-    afterDatasetDraw(chart) {
-        if (chart.config.type !== 'doughnut') return;
-        const { ctx, data } = chart;
-        const meta = chart.getDatasetMeta(0);
-        if (!meta.data || !meta.data.length) return;
+const GAUGE_MAX = 50; // items = full scale
 
-        const arc = meta.data[0];
-        const cx = arc.x, cy = arc.y, outerRadius = arc.outerRadius;
-        const value   = data.datasets[0].needleValue || 0;
-        const percent = Math.min(Math.max(value / 50, 0), 1);
-        const angle   = Math.PI + percent * Math.PI;
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angle);
-        ctx.beginPath();
-        ctx.moveTo(0, -3);
-        ctx.lineTo(outerRadius - 8, 0);
-        ctx.lineTo(0, 3);
-        ctx.fillStyle = '#334155';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        ctx.font = 'bold 18px Inter, sans-serif';
-        ctx.fillStyle = '#0f172a';
-        ctx.textAlign = 'center';
-        ctx.fillText(value, cx, cy + 24);
-        ctx.font = '10px Inter, sans-serif';
-        ctx.fillStyle = '#64748b';
-        ctx.fillText('Items', cx, cy + 38);
-    }
-};
-Chart.register(gaugeNeedlePlugin);
-
-function makeGauge(id) {
-    return new Chart(document.getElementById(id), {
-        type: 'doughnut',
-        data: {
-            labels: ['Normal', 'Warning', 'Critical'],
-            datasets: [{ data: [20, 15, 15], backgroundColor: ['#4ade80', '#facc15', '#ef4444'], borderWidth: 0, needleValue: 0 }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            rotation: 270, circumference: 180, cutout: '62%',
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            layout: { padding: { bottom: 44, left: 4, right: 4 } }
-        }
-    });
+// Stock colour thresholds
+function gaugeColor(value) {
+    if (value >= Math.round(GAUGE_MAX * 0.5)) return '#22c55e';  // green  ≥ 25
+    if (value >= Math.round(GAUGE_MAX * 0.2)) return '#f59e0b';  // amber  ≥ 10
+    return '#ef4444';                                             // red    < 10
 }
 
-const gaugeA = makeGauge('gaugeA');
-const gaugeB = makeGauge('gaugeB');
-const gaugeC = makeGauge('gaugeC');
-
 /* ════════════════════════════════════════════
-   Waste Chart — init before data arrives
+   Waste Chart — vertical column, 53-week 2026
 ════════════════════════════════════════════ */
+
+// Build week labels W1…W53
+const WEEK_LABELS = Array.from({ length: 53 }, (_, i) => `W${i + 1}`);
+
+// Return ISO week number (1-53) for a Date in 2026
+function isoWeek(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
 const wasteChart = new Chart(document.getElementById('wasterate'), {
     type: 'bar',
     data: {
-        labels: ['Category A', 'Category B', 'Category C'],
+        labels: WEEK_LABELS,
         datasets: [
-            { type: 'line', label: `Max Safe Loss (${WARNING_LIMIT}%)`, data: [WARNING_LIMIT, WARNING_LIMIT, WARNING_LIMIT], borderColor: '#ef4444', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, order: 1 },
-            { type: 'bar',  label: 'Expired Loss (%)',  data: [0, 0, 0], backgroundColor: 'rgba(248,113,113,.85)', borderRadius: 6, order: 2 },
-            { type: 'bar',  label: 'Damaged Loss (%)',  data: [0, 0, 0], backgroundColor: 'rgba(251,191,36,.85)',  borderRadius: 6, order: 3 }
+            {
+                type: 'line',
+                label: `Max Safe Loss (${WARNING_LIMIT}%)`,
+                data: Array(53).fill(WARNING_LIMIT),
+                borderColor: '#ef4444',
+                borderWidth: 1.5,
+                borderDash: [4, 4],
+                pointRadius: 0,
+                fill: false,
+                order: 0
+            },
+            {
+                label: 'Category A',
+                data: Array(53).fill(0),
+                backgroundColor: 'rgba(99,102,241,.8)',   // indigo
+                borderRadius: 3,
+                order: 1
+            },
+            {
+                label: 'Category B',
+                data: Array(53).fill(0),
+                backgroundColor: 'rgba(16,185,129,.8)',   // emerald
+                borderRadius: 3,
+                order: 2
+            },
+            {
+                label: 'Category C',
+                data: Array(53).fill(0),
+                backgroundColor: 'rgba(245,158,11,.8)',   // amber
+                borderRadius: 3,
+                order: 3
+            }
         ]
     },
     options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: true, position: 'top', labels: { font: { size: 11, family: 'Inter' }, boxWidth: 12 } } },
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: { font: { size: 11 }, boxWidth: 12 }
+            },
+            tooltip: {
+                callbacks: {
+                    title: ctx => `2026 ${ctx[0].label}`,
+                    label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`
+                }
+            }
+        },
         scales: {
-            x: { beginAtZero: true, max: 100, title: { display: true, text: 'Loss Rate (%)', font: { size: 11 } }, grid: { color: '#f1f5f9' } },
-            y: { grid: { display: false } }
+            x: {
+                title: { display: true, text: 'Week of 2026', font: { size: 11 } },
+                grid: { display: false },
+                ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 18 }
+            },
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: { display: true, text: 'Waste Rate (%)', font: { size: 11 } },
+                grid: { color: '#f1f5f9' }
+            }
         }
     }
 });
@@ -420,45 +435,97 @@ function updateGauges() {
         else if (item.Category === 'Category_B') stockB += mod;
         else if (item.Category === 'Category_C') stockC += mod;
     });
-    gaugeA.data.datasets[0].needleValue = Math.max(stockA, 0); gaugeA.update();
-    gaugeB.data.datasets[0].needleValue = Math.max(stockB, 0); gaugeB.update();
-    gaugeC.data.datasets[0].needleValue = Math.max(stockC, 0); gaugeC.update();
+    setStockCircle('gaugeA', Math.max(stockA, 0));
+    setStockCircle('gaugeB', Math.max(stockB, 0));
+    setStockCircle('gaugeC', Math.max(stockC, 0));
+}
+
+function setStockCircle(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const color = gaugeColor(value);
+    el.style.borderColor      = color;
+    el.style.boxShadow        = `0 0 0 4px ${color}22`;
+    el.querySelector('.stock-circle-num').textContent   = value;
+    el.querySelector('.stock-circle-num').style.color   = color;
 }
 
 function filterWasteData() {
-    const selectedMonth = document.getElementById('monthFilter').value;
-    const cats = ['Category_A', 'Category_B', 'Category_C'];
-    const stats = {};
-    cats.forEach(k => { stats[k] = { expired: 0, damaged: 0, totalOut: 0 }; });
+    const wStart = Math.max(1,     Math.min(53, parseInt(document.getElementById('weekStart').value) || 1));
+    const wEnd   = Math.max(wStart, Math.min(53, parseInt(document.getElementById('weekEnd').value)   || 53));
 
-    rawLogs.forEach(item => {
-        if (item.Action !== 'CHECK_OUT' || !stats[item.Category]) return;
-        if (selectedMonth !== 'all') {
-            const month = (item.Timestamp || '').split(' ')[0].split('-')[1];
-            if (month !== selectedMonth) return;
-        }
-        stats[item.Category].totalOut++;
-        if (item.Reason === 'Expired') stats[item.Category].expired++;
-        if (item.Reason === 'Damaged') stats[item.Category].damaged++;
+    const cats = ['Category_A', 'Category_B', 'Category_C'];
+
+    // Per-category, per-week accumulators
+    // stats[cat][weekIdx] = { waste: 0, totalOut: 0 }
+    const stats = {};
+    cats.forEach(cat => {
+        stats[cat] = Array.from({ length: 53 }, () => ({ waste: 0, totalOut: 0 }));
     });
 
-    const rate = (n, d) => d > 0 ? +((n / d) * 100).toFixed(2) : 0;
-    const expiredRates = cats.map(k => rate(stats[k].expired, stats[k].totalOut));
-    const damagedRates = cats.map(k => rate(stats[k].damaged, stats[k].totalOut));
+    rawLogs.forEach(item => {
+        if (item.Action !== 'CHECK_OUT' || !item.Timestamp || !stats[item.Category]) return;
+        const d = new Date(item.Timestamp.replace(' ', 'T'));
+        if (d.getFullYear() !== 2026) return;
+        const w = isoWeek(d);
+        if (w < 1 || w > 53) return;
+        const idx = w - 1;
 
-    const overLimit = cats.filter((k, i) => expiredRates[i] > WARNING_LIMIT || damagedRates[i] > WARNING_LIMIT)
-                          .map(k => k.replace('_', ' '));
+        stats[item.Category][idx].totalOut++;
+
+        // Step 1 — Volume of Waste: Expired + Damaged
+        const reason = (item.Reason || '').toLowerCase();
+        if (reason === 'expired' || reason === 'damaged') {
+            stats[item.Category][idx].waste++;
+        }
+    });
+
+    // Step 2 — Waste Rate = Volume of Waste ÷ Total Check-Out × 100
+    const wasteRate = (cat) =>
+        Array(53).fill(0).map((_, i) => {
+            if (i + 1 < wStart || i + 1 > wEnd) return 0;
+            const { waste, totalOut } = stats[cat][i];
+            return totalOut > 0 ? +((waste / totalOut) * 100).toFixed(2) : 0;
+        });
+
+    const ratesA = wasteRate('Category_A');
+    const ratesB = wasteRate('Category_B');
+    const ratesC = wasteRate('Category_C');
+
+    // Danger alert — any category/week breaching the limit in the selected range
+    const overLimit = [];
+    for (let i = wStart - 1; i < wEnd; i++) {
+        if (ratesA[i] > WARNING_LIMIT) overLimit.push(`W${i + 1} Cat A`);
+        if (ratesB[i] > WARNING_LIMIT) overLimit.push(`W${i + 1} Cat B`);
+        if (ratesC[i] > WARNING_LIMIT) overLimit.push(`W${i + 1} Cat C`);
+    }
+
     const alertBox = document.getElementById('dangerAlert');
     if (overLimit.length) {
-        alertBox.textContent = `⚠️ ACTION REQUIRED: ${overLimit.join(', ')} exceeded the ${WARNING_LIMIT}% safe loss limit!`;
+        alertBox.textContent = `⚠️ ACTION REQUIRED: ${overLimit.join(', ')} exceeded the ${WARNING_LIMIT}% safe waste limit!`;
         alertBox.classList.add('visible');
     } else {
         alertBox.classList.remove('visible');
     }
-    wasteChart.data.datasets[1].data = expiredRates;
-    wasteChart.data.datasets[2].data = damagedRates;
+
+    wasteChart.options.scales.x.min = `W${wStart}`;
+    wasteChart.options.scales.x.max = `W${wEnd}`;
+    wasteChart.data.datasets[1].data = ratesA;
+    wasteChart.data.datasets[2].data = ratesB;
+    wasteChart.data.datasets[3].data = ratesC;
     wasteChart.update();
 }
+
+/* Week inputs — scroll wheel increments/decrements the value */
+['weekStart', 'weekEnd'].forEach(id => {
+    document.getElementById(id).addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const step = e.deltaY < 0 ? 1 : -1;
+        const next = Math.min(53, Math.max(1, parseInt(this.value || 1) + step));
+        this.value = next;
+        filterWasteData();
+    }, { passive: false });
+});
 
 function updateFIFO() {
     const tbody = document.getElementById('priorityTableBody');
