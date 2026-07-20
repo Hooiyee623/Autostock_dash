@@ -779,7 +779,12 @@ body.report-page {
         grid-template-columns: 1fr;
         height: auto;
     }
-    .chart-row .card { min-height: 300px; }
+    /* Stacked cards size to content; give charts a definite height so
+       Chart.js (maintainAspectRatio:false) doesn't collapse or overflow. */
+    .chart-row .card { min-height: 0; }
+    .chart-canvas-wrap { flex: none; height: 300px; }
+    .gauge-grid { flex: none; gap: 20px; padding: 12px 0; }
+    .gauge-row { flex-wrap: wrap; justify-content: center; gap: 24px; }
 }
 
 /* =================================================================
