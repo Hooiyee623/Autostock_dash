@@ -319,8 +319,7 @@ button, input, select, textarea { font: inherit; }
     background: var(--surface);
     text-align: center;
     outline: none;
-    cursor: ns-resize;
-    user-select: none;
+    cursor: text;
     transition: border-color var(--transition);
 }
 .week-input:focus { border-color: var(--accent); }
@@ -709,6 +708,9 @@ body.report-page {
 .report-table tbody tr:last-child { border-bottom: none; }
 .report-table tbody tr:hover { background: var(--surface-2); }
 .report-table td { padding: 11px 16px; color: var(--text-secondary); vertical-align: middle; }
+/* Keep cells on one line so columns take natural width and the table
+   overflows horizontally (into .report-table-scroll) instead of wrapping. */
+.report-table th, .report-table td { white-space: nowrap; }
 
 /* Days Left colors (td-scoped to beat .report-table td) */
 .report-table td.days-expired,
