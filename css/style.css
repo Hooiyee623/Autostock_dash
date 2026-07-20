@@ -678,7 +678,10 @@ body.report-page {
 .filter-input { flex: 1; min-width: 160px; }
 .filter-select { min-width: 140px; }
 
-.report-table-wrap { flex: 1; overflow-y: auto; background: var(--bg); padding: 16px 24px; }
+.report-table-wrap { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--bg); padding: 16px 24px; }
+/* Inner wrapper handles horizontal overflow only — keeps the two scroll
+   axes on separate elements so the table can't be panned diagonally. */
+.report-table-scroll { overflow-x: auto; overflow-y: hidden; }
 
 .report-table {
     width: 100%;
@@ -791,6 +794,18 @@ body.report-page {
    RESPONSIVE — MOBILE (≤ 768px)
    ================================================================= */
 @media (max-width: 768px) {
+    /* Abandon the fixed-height app shell — let the whole page scroll as one
+       document so cards can grow to their content instead of being clipped. */
+    html, body { overflow: auto; height: auto; }
+    .main-wrapper,
+    .sidebar-collapsed .main-wrapper { height: auto; min-height: 100vh; }
+    .page-content { overflow: visible; }
+
+    /* These regions relied on internal scroll — release them on mobile */
+    .chart-row .card, .fifo-card { min-height: 0; }
+    .fifo-card .card-body { overflow: visible; }
+    .table-scroll { overflow-x: auto; overflow-y: visible; }
+
     /* Sidebar becomes an off-canvas drawer sliding over the content */
     .sidebar {
         transform: translateX(-100%);
@@ -836,7 +851,7 @@ body.report-page {
     .report-title { font-size: 15px; }
     .report-filters { flex-wrap: wrap; padding: 12px 16px; }
     .filter-input, .filter-select { flex: 1 1 100%; min-width: 0; }
-    .report-table-wrap { padding: 12px; overflow-x: auto; }
+    .report-table-wrap { padding: 12px; }
     .report-table { min-width: 620px; }
 }
 
