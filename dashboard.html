@@ -72,6 +72,9 @@
     </div>
 </aside>
 
+<!-- Backdrop shown behind the off-canvas sidebar on mobile -->
+<div class="sidebar-scrim" onclick="closeMobileSidebar()"></div>
+
 <!-- ═══════════════════════════════════════════════
      MAIN
 ════════════════════════════════════════════════ -->
@@ -249,14 +252,28 @@ function logoutUser() {
     firebase.auth().signOut().then(() => { window.location.href = 'index.html'; });
 }
 
-/* Sidebar collapse — persisted across reloads */
+/* Sidebar behavior — desktop collapses in place, mobile slides in as a drawer */
+const mobileQuery = window.matchMedia('(max-width: 768px)');
+
 function toggleSidebar() {
-    const collapsed = document.body.classList.toggle('sidebar-collapsed');
-    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    if (mobileQuery.matches) {
+        document.body.classList.toggle('sidebar-open');
+    } else {
+        const collapsed = document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    }
 }
+
+function closeMobileSidebar() {
+    document.body.classList.remove('sidebar-open');
+}
+
 if (localStorage.getItem('sidebarCollapsed') === '1') {
     document.body.classList.add('sidebar-collapsed');
 }
+
+/* Reset the mobile drawer state when crossing the breakpoint */
+mobileQuery.addEventListener('change', () => document.body.classList.remove('sidebar-open'));
 
 function sendTelegramAlert(text) {
     fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {

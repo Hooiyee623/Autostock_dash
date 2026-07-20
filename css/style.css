@@ -757,3 +757,88 @@ body.report-page {
 .reason-chip.reason-sold    { background: #eff6ff; color: #2563eb; }
 .reason-chip.reason-expired { background: #fff7ed; color: #c2410c; }
 .reason-chip.reason-damaged { background: #fef2f2; color: #dc2626; }
+
+/* =================================================================
+   SIDEBAR SCRIM (mobile off-canvas backdrop)
+   ================================================================= */
+.sidebar-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .5);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+/* =================================================================
+   RESPONSIVE — TABLET (≤ 1024px)
+   ================================================================= */
+@media (max-width: 1024px) {
+    .chart-row {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    .chart-row .card { min-height: 300px; }
+}
+
+/* =================================================================
+   RESPONSIVE — MOBILE (≤ 768px)
+   ================================================================= */
+@media (max-width: 768px) {
+    /* Sidebar becomes an off-canvas drawer sliding over the content */
+    .sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-w);
+        box-shadow: var(--shadow-lg);
+        transition: transform var(--transition);
+    }
+    /* Ignore desktop collapsed state on mobile — always show full labels */
+    .sidebar-collapsed .sidebar,
+    .sidebar .sidebar { width: var(--sidebar-w); }
+    .sidebar-collapsed .nav-text,
+    .sidebar .nav-text { display: inline; }
+    .sidebar-collapsed .nav-section-label { visibility: visible; height: auto; padding: 8px 20px 4px; }
+    .sidebar-collapsed .sidebar-brand { justify-content: flex-start; padding: 0 20px; gap: 10px; }
+    .sidebar-collapsed .nav-item { justify-content: flex-start; padding: 9px 20px; gap: 10px; }
+
+    /* Content spans full width; sidebar overlays it */
+    .main-wrapper,
+    .sidebar-collapsed .main-wrapper { margin-left: 0; }
+
+    /* Open state (toggled by hamburger) */
+    .sidebar-open .sidebar { transform: translateX(0); }
+    .sidebar-open .sidebar-scrim { display: block; opacity: 1; }
+
+    /* Header + content spacing */
+    .top-header { padding: 0 16px; }
+    .header-sub { display: none; }
+    .page-content { padding: 14px 16px; gap: 14px; }
+
+    /* Metric cards: 2 across */
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+    .metric-card { padding: 14px 16px; gap: 12px; }
+    .metric-icon-wrap { width: 40px; height: 40px; }
+    .metric-icon-wrap .material-symbols-outlined { font-size: 22px; }
+    .metric-value { font-size: 22px; }
+
+    /* Wide tables scroll horizontally instead of crushing */
+    .table-scroll { overflow-x: auto; }
+    .data-table { min-width: 620px; }
+
+    /* Report pages */
+    .report-header { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+    .report-title { font-size: 15px; }
+    .report-filters { flex-wrap: wrap; padding: 12px 16px; }
+    .filter-input, .filter-select { flex: 1 1 100%; min-width: 0; }
+    .report-table-wrap { padding: 12px; overflow-x: auto; }
+    .report-table { min-width: 620px; }
+}
+
+/* =================================================================
+   RESPONSIVE — SMALL PHONES (≤ 480px)
+   ================================================================= */
+@media (max-width: 480px) {
+    .metric-row { grid-template-columns: 1fr; }
+    .login-card { padding: 32px 24px; }
+}
