@@ -177,25 +177,43 @@
                     <div class="gauge-grid">
                         <div class="gauge-row">
                             <div class="gauge-item">
-                                <div class="stock-circle" id="gaugeA">
-                                    <span class="stock-circle-num">—</span>
-                                    <span class="stock-circle-label">items</span>
+                                <div class="arc-gauge" id="gaugeA">
+                                    <svg viewBox="0 0 100 100" class="arc-svg">
+                                        <circle class="arc-track" cx="50" cy="50" r="42"/>
+                                        <circle class="arc-fill"  cx="50" cy="50" r="42"/>
+                                    </svg>
+                                    <div class="arc-center">
+                                        <span class="arc-num">—</span>
+                                        <span class="arc-label">items</span>
+                                    </div>
                                 </div>
                                 <div class="gauge-label">Category A</div>
                             </div>
                             <div class="gauge-item">
-                                <div class="stock-circle" id="gaugeB">
-                                    <span class="stock-circle-num">—</span>
-                                    <span class="stock-circle-label">items</span>
+                                <div class="arc-gauge" id="gaugeB">
+                                    <svg viewBox="0 0 100 100" class="arc-svg">
+                                        <circle class="arc-track" cx="50" cy="50" r="42"/>
+                                        <circle class="arc-fill"  cx="50" cy="50" r="42"/>
+                                    </svg>
+                                    <div class="arc-center">
+                                        <span class="arc-num">—</span>
+                                        <span class="arc-label">items</span>
+                                    </div>
                                 </div>
                                 <div class="gauge-label">Category B</div>
                             </div>
                         </div>
                         <div class="gauge-row center">
                             <div class="gauge-item">
-                                <div class="stock-circle" id="gaugeC">
-                                    <span class="stock-circle-num">—</span>
-                                    <span class="stock-circle-label">items</span>
+                                <div class="arc-gauge" id="gaugeC">
+                                    <svg viewBox="0 0 100 100" class="arc-svg">
+                                        <circle class="arc-track" cx="50" cy="50" r="42"/>
+                                        <circle class="arc-fill"  cx="50" cy="50" r="42"/>
+                                    </svg>
+                                    <div class="arc-center">
+                                        <span class="arc-num">—</span>
+                                        <span class="arc-label">items</span>
+                                    </div>
                                 </div>
                                 <div class="gauge-label">Category C</div>
                             </div>
@@ -461,10 +479,15 @@ function setStockCircle(id, value) {
     const el = document.getElementById(id);
     if (!el) return;
     const color = gaugeColor(value);
-    el.style.borderColor      = color;
-    el.style.boxShadow        = `0 0 0 4px ${color}22`;
-    el.querySelector('.stock-circle-num').textContent   = value;
-    el.querySelector('.stock-circle-num').style.color   = color;
+    const r = 42;
+    const circumference = 2 * Math.PI * r;          // ≈ 263.9
+    const pct = Math.min(value / GAUGE_MAX, 1);
+    const dash = pct * circumference;
+    const arc = el.querySelector('.arc-fill');
+    arc.style.stroke           = color;
+    arc.style.strokeDasharray  = `${dash} ${circumference}`;
+    el.querySelector('.arc-num').textContent  = value;
+    el.querySelector('.arc-num').style.color  = color;
 }
 
 function filterWasteData() {
